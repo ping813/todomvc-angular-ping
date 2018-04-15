@@ -2,23 +2,18 @@
 	'use strict';
 
 	const app = angular.module('myApp', []);
-	app.controller('myController', ['$scope', '$location', ($scope, $location) => {
-		// 初始化，没有一条任务
-		const items = localStorage.getItem('tasks') || '[]';
-		const saveLocalItems = () => {
-			localStorage.setItem('tasks', JSON.stringify($scope.tasks));
-		};
-		$scope.tasks = JSON.parse(items);
+	app.controller('myController', ['$scope', '$location', 'myService', ($scope, $location, myService) => {
+		$scope.tasks = myService.get();
 		// 往localStorage存储
 		// enter键新建任务
 		$scope.addTask = () => {
 			if (!$scope.newTask) return;
-			$scope.tasks.push({
+			myService.setTask({
 				completed: false,
 				name: $scope.newTask,
 				id: new Date().getTime()
 			});
-			saveLocalItems();
+			myService.save();
 			$scope.newTask = undefined;
 		};
 		// 删除任务
@@ -28,7 +23,7 @@
 					$scope.tasks.splice(i, 1);
 				}
 			}
-			saveLocalItems();
+			myService.save();
 		};
 		// 编辑任务
 		$scope.editTask = (id) => {
@@ -37,7 +32,7 @@
 		// 编辑后保存
 		$scope.saveTask = () => {
 			$scope.itemId = -1;
-			saveLocalItems();
+			myService.save();
 		}
 		// 清除已完成
 		$scope.clearAllFinish = () => {
@@ -48,7 +43,7 @@
 				}
 			}
 			$scope.tasks = unfinish;
-			saveLocalItems();
+			myService.save();
 		};
 		let flag = true;
 		// 全选设置 下面任务的选中状态与全选按钮的选中状态保持一致
@@ -57,7 +52,7 @@
 				$scope.tasks[i].completed = flag;
 			}
 			flag = !flag;
-			saveLocalItems();
+			myService.save();
 		};
 		// 监听任务变化
 		$scope.$watch('tasks', (newValue) => {
@@ -77,6 +72,7 @@
 			} 
 			$scope.isShow = finished ? true : false;
 			$scope.unfinishNum = newValue.length - finished;
+			myService.save();
 		}, true);
 		$scope.isSelected = undefined;
 		$scope.location = $location;
@@ -95,5 +91,20 @@
 				break
 			}
 		});
+	}]);
+
+	// 创建服务，存取于localStorage
+	app.service('myService', [function () {
+		const storage = window.localStorage;
+		const items = JSON.parse(storage.getItem('tasks') || '[]');
+		this.get = () => {
+			return items;
+		};
+		this.save = () => {
+			storage.setItem('tasks', JSON.stringify(items));
+		};
+		this.setTask = (tasks) => {
+			items.push(tasks);
+		};
 	}]);
 })(angular, window);
